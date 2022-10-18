@@ -61,6 +61,7 @@
                "vol" "volume" "ser" "serial"
                "dsname" "dsn"
                "dsorg"
+               "notify"
                "ddname"
                "unit"
                "space" "cyl" "trk"
@@ -68,9 +69,21 @@
                "sysout"
                "data" "dlm") 'paren))
 
+(defconst jcl-jes2-statement
+  "^/\\*[[:graph:]]+")
+
+(defconst jcl-if-endif
+  (regexp-opt '("if" "endif")))
+
+(defconst jcl-procedure-statement
+  "^XX")
+
+(defconst jcl-overwritten-statement
+  "^X/")
+
 
 (defvar jcl-operators
-  '("=" "&" "&&" "*")
+  '("=" "&" "&&" "*" "(" ")" ",")
   "JCL 'operators'.  A really minimal set.")
 
 (defvar jcl-names
