@@ -19,9 +19,30 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-(defgroup jcl nil
+(defgroup jcl-mode nil
   "Major mode for editing JCL code."
   :group 'languages)
+
+
+(defcustom jcl-outline-regexp
+  (rx line-start "//"
+      (1+ wordchar)
+      (1+ (syntax whitespace))
+      (or "EXEC" "JOB") (or "=" (syntax whitespace)))
+  "Regexp for outline-minor-mode."
+  :group 'jcl-mode
+  :type 'regexp)
+
+(defcustom jcl-outline-end-regexp (rx (or (1+ (syntax whitespace)) "\n"))
+  "Regexp for end of section or paragraph."
+  :group 'jcl-mode
+  :type 'string)
+
+(defcustom jcl-line-length 72
+  "Length of standard cobol line length."
+  :group 'jcl-mode
+  :type 'integer)
+
 
 
 
@@ -56,7 +77,7 @@
   "^//\\([^*][[:graph:]]+\\)"
   "JCL names.
 
-These are the 'names' of jobs and steps.")
+  These are the 'names' of jobs and steps.")
 
 
 (defvar jcl-comments
@@ -72,17 +93,17 @@ These are the 'names' of jobs and steps.")
   "^//[^* ]+ +[[:graph:]]* +[[:graph:]]+ +\\([[:graph:]].*\\)"
   "JCL 'end of card' comments for 'full' cards.
 
-Anything after the 'operands' in a card is a comment; this regexp
-selects them.")
+  Anything after the 'operands' in a card is a comment; this regexp
+  selects them.")
 
 
 (defvar jcl-card-end-comments-2
   "// +[[:graph:]]+ +\\([[:graph:]].*\\)"
   "JCL 'end of card' comments for 'continuation' cards.
 
-Anything after the 'operands' in a card is a comment; this regexp
-selects them in case of 'continuation' cards that do not have the
-'name' and 'operation'.")
+  Anything after the 'operands' in a card is a comment; this regexp
+  selects them in case of 'continuation' cards that do not have the
+  'name' and 'operation'.")
 
 ;;; JCL Regexps
 
@@ -254,6 +275,11 @@ These are the 'names' of jobs and steps.")
               comment-column 40
               comment-use-syntax nil)
 
+  ;; Outline-minor-mode
+  (setq-local outline-level 'jcl-outline-level
+              outline-regexp jcl-outline-regexp
+              outline-heading-end-regexp jcl-outline-end-regexp)
+
   ;; Set up the mode keymap.
 
   (use-local-map jcl-mode-map)
@@ -269,6 +295,7 @@ These are the 'names' of jobs and steps.")
 
   (setq-local imenu-generic-expression
 	      (reverse jcl-imenu-generic-expression))
+
   (imenu-add-to-menubar "JCL Code")
 
   ;; Start the IRON MAIN minor mode, which sets up the ruler and the
