@@ -1,0 +1,6 @@
+* jcl-mode
+
+Emacs major mode for editing Job Language Control file.
+
+'jcl-mode' is and Emacs major mode for editing Mainframe job scripts which are written in the "Job Control Language",
+JCL.
