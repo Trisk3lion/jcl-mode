@@ -43,6 +43,11 @@
   :group 'jcl-mode
   :type 'integer)
 
+(defcustom jcl-fill-column 72
+  "Fill column for jcl-mode."
+  :group 'jcl-mode
+  :type 'integer)
+
 
 
 
@@ -55,19 +60,18 @@
   (mapcar (lambda (x) (concat "^" x)) '("//" "//*" "/*")))
 
 (defconst jcl-operands-fields
-  (regexp-opt ("class" "msgclass" "msglevel" "user" "password" "region"
-               "pgm" "cond"
-               "disp" "new" "old" "keep" "catlg" "shared" "shr" "delete" "del"
-               "vol" "volume" "ser" "serial"
-               "dsname" "dsn"
-               "dsorg"
-               "notify"
-               "ddname"
-               "unit"
-               "space" "cyl" "trk"
-               "dcb" "recfm" "lrecl" "blksize"
-               "sysout"
-               "data" "dlm") 'paren))
+  (regexp-opt '("class" "msgclass" "msglevel" "user" "password" "region"
+                "pgm" "cond"
+                "disp" "new" "old" "keep" "catlg" "shared" "shr" "delete" "del"
+                "vol" "volume" "ser" "serial"
+                "dsname" "dsn"
+                "dsorg"
+                "ddname"
+                "unit"
+                "space" "cyl" "trk"
+                "dcb" "recfm" "lrecl" "blksize"
+                "sysout"
+                "data" "dlm") 'paren))
 
 (defconst jcl-jes2-statement
   "^/\\*[[:graph:]]+")
@@ -242,15 +246,18 @@ These are the 'names' of jobs and steps.")
   "The JCL mode syntax table."
   )
 
+(defun jcl--electric-enter ()
+  (newline)
+  (insert "//"))
 
-;;; jcl-keymap
-
-(defvar jcl-mode-map
-  (let ((km (make-sparse-keymap)))
-    (set-keymap-parent km prog-mode-map) ; Inherit from prog-mode-map!
-    km)
-  "The JCL mode key map.")
-
+(defun jcl-electric-enter ()
+  (interactive)
+  (cond
+   ((eq (char-before) ?,)
+    (jcl--electric-enter))
+   ((looking-back "\\s-+," (point-at-bol))
+    (jcl--electric-enter))
+   (t (newline))))
 
 ;;; jcl-imenu-generic-expression
 
@@ -263,6 +270,11 @@ These are the 'names' of jobs and steps.")
     )
   "The JCL Imenu regular expressions.")
 
+(defvar jcl-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map prog-mode-map)
+    (define-key map (kbd "RET") #'jcl-electric-enter)
+    map))
 
 ;;; jcl-mode
 
@@ -278,7 +290,7 @@ These are the 'names' of jobs and steps.")
 			   :foreground "Forest Green") ; This may be too much.
   (face-remap-add-relative jcl-operations-face  :weight 'bold)
 
-  (setq-local fill-column 72)
+  (setq-local fill-column jcl-fill-column)
 
   ;; Comments.
   (setq-local comment-start "//*"
@@ -292,10 +304,6 @@ These are the 'names' of jobs and steps.")
   (setq-local outline-level 'jcl-outline-level
               outline-regexp jcl-outline-regexp
               outline-heading-end-regexp jcl-outline-end-regexp)
-
-  ;; Set up the mode keymap.
-
-  (use-local-map jcl-mode-map)
 
   ;; Set up the menus.
 
@@ -311,12 +319,6 @@ These are the 'names' of jobs and steps.")
 
   (imenu-add-to-menubar "JCL Code")
 
-  ;; Start the IRON MAIN minor mode, which sets up the ruler and the
-  ;; "card" editing limits, plus the fill-column indicator.
-
-  (iron-main-mode)
-
-  'jcl-mode
   )
 
 
