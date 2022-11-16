@@ -18,6 +18,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+;;; Code:
 
 (defgroup jcl-mode nil
   "Major mode for editing JCL code."
@@ -29,7 +30,7 @@
       (1+ wordchar)
       (1+ (syntax whitespace))
       (or "EXEC" "JOB") (or "=" (syntax whitespace)))
-  "Regexp for outline-minor-mode."
+  "Regexp for `outline-minor-mode'."
   :group 'jcl-mode
   :type 'regexp)
 
@@ -44,7 +45,7 @@
   :type 'integer)
 
 (defcustom jcl-fill-column 72
-  "Fill column for jcl-mode."
+  "Fill column for `jcl-mode'."
   :group 'jcl-mode
   :type 'integer)
 
