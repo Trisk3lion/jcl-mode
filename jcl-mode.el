@@ -80,47 +80,67 @@
   (regexp-opt '("if" "endif")))
 
 (defconst jcl-procedure-statement
-  "^XX")
+  (rx bol "XX"))
 
 (defconst jcl-overwritten-statement
-  "^X/")
-
+  (rx bol "X/"))
 
 (defvar jcl-operators
   '("=" "&" "&&" "*" "(" ")" ",")
-  "JCL 'operators'.  A really minimal set.")
+  "JCL operators.  A really minimal set.")
 
-(defvar jcl-names
-  "^//\\([^*][[:graph:]]+\\)"
+(defconst jcl-names
+  (rx bol "//"
+      (group (not "*")
+             (+ graph)))
   "JCL names.
+  These are the names of jobs and steps.")
 
-  These are the 'names' of jobs and steps.")
+(eval-and-compile
+  (defconst jcl-comment-start-re
+    (rx bol "//*"))
 
+  (defconst jcl--syntax-propertize-comment-start
+    (syntax-propertize-precompile-rules
+     (jcl-comment-start-re (1 "<"))))
 
-(defvar jcl-comments
+  (defconst jcl--syntax-propertize-sequence-area
+    (syntax-propertize-precompile-rules
+     ;; TODO: Override open strings
+     ("^.\\{72\\}\\(.\\)" (1 "<")))
+    "Syntax rule to mark text in the sequence area as comments.")
+  )
+
+(defun jcl--syntax-propertize-function (beg end)
+  (funcall (syntax-propertize-rules
+            jcl--syntax-propertize-comment-start
+            jcl--syntax-propertize-sequence-area)
+           beg end))
+
+(defvar jcl-comment
   "^//\\*.*$"
-  "JCL 'full card' comments.")
+  "JCL full card comments.")
 
 (defvar jcl-expanded
   "^XX.*"
-  "Lines with expanded INCLUDE's.")
+  "Lines with expanded INCLUDEs.")
 
 
 (defvar jcl-card-end-comments-1
   "^//[^* ]+ +[[:graph:]]* +[[:graph:]]+ +\\([[:graph:]].*\\)"
-  "JCL 'end of card' comments for 'full' cards.
+  "JCL end of card comments for full cards.
 
-  Anything after the 'operands' in a card is a comment; this regexp
+  Anything after the operands in a card is a comment; this regexp
   selects them.")
 
 
 (defvar jcl-card-end-comments-2
   "// +[[:graph:]]+ +\\([[:graph:]].*\\)"
-  "JCL 'end of card' comments for 'continuation' cards.
+  "JCL end of card comments for continuation cards.
 
-  Anything after the 'operands' in a card is a comment; this regexp
-  selects them in case of 'continuation' cards that do not have the
-  'name' and 'operation'.")
+  Anything after the operands in a card is a comment; this regexp
+  selects them in case of continuation cards that do not have the
+  name and operation.")
 
 ;;; JCL Regexps
 
@@ -134,13 +154,14 @@
 
 (defcustom jcl-cc-envs
   '("PROD" "PRODHOLD" "IK" "IKDHOLD" "PROJ")
-  "CC Environments.")
+  "CC Environments."
+  :type '(string))
 
 (defvar jcl-cc-when
   "^))\\(WHEN\\|ELSE\\|END\\)"
   "JCL names.
 
-These are the 'names' of jobs and steps.")
+These are the names of jobs and steps.")
 
 (defconst jcl-cc-when-envs
   (regexp-opt jcl-cc-envs "^))WHEN\\s-+.*\\("))
@@ -154,37 +175,37 @@ These are the 'names' of jobs and steps.")
   )
 
 (defcustom jcl-names-face 'font-lock-function-name-face
-  "The face used to fontify 'names' in JCL mode."
+  "The face used to fontify names in JCL mode."
   :group 'jcl
   :type 'symbol
   )
 
 (defcustom jcl-operations-face 'font-lock-keyword-face
-  "The face used to fontify 'operations' in JCL mode."
+  "The face used to fontify operations in JCL mode."
   :group 'jcl
   :type 'symbol
   )
 
 (defcustom jcl-operands-face 'font-lock-type-face
-  "The face used to fontify 'operands' in JCL mode."
+  "The face used to fontify operands in JCL mode."
   :group 'jcl
   :type 'symbol
   )
 
 (defcustom jcl-operators-face 'font-lock-builtin-face
-  "The face used to fontify 'operators' in JCL mode."
+  "The face used to fontify operators in JCL mode."
   :group 'jcl
   :type 'symbol
   )
 
 (defcustom jcl-comment-face 'font-lock-comment-face
-  "The face used to fontify 'comments' in JCL mode."
+  "The face used to fontify comments in JCL mode."
   :group 'jcl
   :type 'symbol
   )
 
 (defcustom jcl-expanded-face 'font-lock-warning-face
-  "The face used to fontify expanded INCLUDE's in `jcl-mode'."
+  "The face used to fontify expanded INCLUDEs in `jcl-mode."
   :group 'jcl
   :type 'symbol)
 
@@ -216,9 +237,9 @@ These are the 'names' of jobs and steps.")
     ;;These must be last.
     (,jcl-card-end-comments-1 . (1 ,jcl-comment-face))
     (,jcl-card-end-comments-2 . (1 ,jcl-comment-face))
-    (,jcl-comments . (0 ,jcl-comment-face t))
+    ;;(,jcl-comments . (0 ,jcl-comment-face t))
     )
-  "The JCL mode 'font-lock' 'keyword' specification."
+  "The JCL mode font-lock keyword specification."
   )
 
 
@@ -226,7 +247,7 @@ These are the 'names' of jobs and steps.")
   (list 'jcl-font-lock-keywords
 	nil ; Do syntax based processing.
 	)
-  "The JCL mode 'font-lock' defaults specification."
+  "The JCL mode font-lock defaults specification."
   )
 
 ;;; Utility FUNCTION
@@ -237,11 +258,11 @@ These are the 'names' of jobs and steps.")
 ;;; jcl-mode-syntax-table
 
 (defvar jcl-mode-syntax-table
-  (let ((jclst (make-syntax-table)))
+  (let ((table (make-syntax-table)))
     ;; (modify-syntax-entry ?/ ". 1" jclst)
     ;; (modify-syntax-entry ?* ". 2" jclst)
-    ;; (modify-syntax-entry ?\n "> " jclst)
-    jclst
+    (modify-syntax-entry ?\n "> " table)
+    table
     )
   "The JCL mode syntax table."
   )
@@ -250,14 +271,28 @@ These are the 'names' of jobs and steps.")
   (newline)
   (insert "//"))
 
+(defun jcl--electric-comment ()
+  (if (< (- (point) (line-beginning-position)) 4)
+      (progn (newline) (insert "//*"))
+    (jcl--electric-enter)))
+
+  (defun jcl--check-bol ()
+    (save-excursion
+      (beginning-of-line)
+      (looking-at "^...?")
+      (pcase  (match-string 0)
+        ("//*" 'comment)
+        ((rx bol "//" (? anychar)) 'standard)
+        (_ 'other))))
+
+
 (defun jcl-electric-enter ()
   (interactive)
-  (cond
-   ((eq (char-before) ?,)
-    (jcl--electric-enter))
-   ((looking-back "\\s-+," (point-at-bol))
-    (jcl--electric-enter))
-   (t (newline))))
+  (let ((bol (jcl--check-bol)))
+    (pcase bol
+      ('comment (jcl--electric-comment))
+      ('standard (jcl--electric-enter))
+      ('other (newline)))))
 
 ;;; jcl-imenu-generic-expression
 
@@ -292,13 +327,15 @@ These are the 'names' of jobs and steps.")
 
   (setq-local fill-column jcl-fill-column)
 
+  (setq-local syntax-propertize-function #'jcl--syntax-propertize-function)
+
   ;; Comments.
   (setq-local comment-start "//*"
               comment-end ""
               comment-start-skip
               "^//\\*\\s-*"
               comment-column 40
-              comment-use-syntax nil)
+              comment-use-syntax t)
 
   ;; Outline-minor-mode
   (setq-local outline-level 'jcl-outline-level
@@ -307,17 +344,17 @@ These are the 'names' of jobs and steps.")
 
   ;; Set up the menus.
 
-  (easy-menu-define jcl-mainframe-os-menu jcl-mode-map
-    "JCL commands"
-    '("JCL OS"
-      ["Submit" jcl-submit]
-      ["Submit JCL File" jcl-submit-file])
-    )
+  ;; (easy-menu-define jcl-mainframe-os-menu jcl-mode-map
+  ;;   "JCL commands"
+  ;;   '("JCL OS"
+  ;;     ["Submit" jcl-submit]
+  ;;     ["Submit JCL File" jcl-submit-file])
+  ;;   )
 
   (setq-local imenu-generic-expression
 	      (reverse jcl-imenu-generic-expression))
 
-  (imenu-add-to-menubar "JCL Code")
+  ;; (imenu-add-to-menubar "JCL Code")
 
   )
 
@@ -326,7 +363,7 @@ These are the 'names' of jobs and steps.")
 ;;;; ========
 
 (defun jcl-comment-current-line ()
-  "Add '*' in the third column."
+  "Add * in the third column."
   (interactive)
   (move-to-column 2)
   (delete-char 1)
@@ -334,10 +371,10 @@ These are the 'names' of jobs and steps.")
   )
 
 (defun jcl-submit (&optional port)
-  "Submits the buffer's content to the 'card reader' at PORT.
+  "Submits the buffer's content to the card reader at PORT.
 
-The buffer contains 'JCL cards' (i.e., lines) which are submitted to a
-'card reader'  listening on PORT.  PORT is an integer; its default is
+The buffer contains JCL cards (i.e., lines) which are submitted to a
+card reader  listening on PORT.  PORT is an integer; its default is
 3505."
 
   (interactive
@@ -370,40 +407,40 @@ The buffer contains 'JCL cards' (i.e., lines) which are submitted to a
 
 
 (defun jcl-submit-file (jcl-file &optional port)
-  "Submits the file JCL-FILE to the 'card reader' at PORT.
+  "Submits the file JCL-FILE to the card reader at PORT.
 
-The file JCL-FILE contains 'JCL cards' (i.e., lines) which are
-submitted to a 'card reader' listening on PORT.  PORT is an
+The file JCL-FILE contains JCL cards (i.e., lines) which are
+submitted to a card reader listening on PORT.  PORT is an
 integer; its default is 3505."
 
-(interactive
- (let ((f (read-file-name "JCL: card file: " nil nil 'confirm))
-       (p (read-number "JCL: card reader number/port: " 3505))
-       )
-   (list f p)))
+  (interactive
+   (let ((f (read-file-name "JCL: card file: " nil nil 'confirm))
+         (p (read-number "JCL: card reader number/port: " 3505))
+         )
+     (list f p)))
 
-(unless port
-  (setq port 3505))
+  (unless port
+    (setq port 3505))
 
-(message "JCL: submitting '%s' to card reader number/port %s."
-	 jcl-file port)
-(let ((card-reader-stream
-       (open-network-stream "JCL OS CARD READER"
-			    nil
-			    "127.0.0.1"
-			    port
-			    :type 'plain
-			    ))
-      )
-  (unwind-protect
-      (with-temp-buffer
-	(insert-file-contents jcl-file)
-	(process-send-region card-reader-stream (point-min) (point-max))
-	(message "JCL: submitted.")
-	)
-    (delete-process card-reader-stream))
+  (message "JCL: submitting '%s' to card reader number/port %s."
+	   jcl-file port)
+  (let ((card-reader-stream
+         (open-network-stream "JCL OS CARD READER"
+			      nil
+			      "127.0.0.1"
+			      port
+			      :type 'plain
+			      ))
+        )
+    (unwind-protect
+        (with-temp-buffer
+	  (insert-file-contents jcl-file)
+	  (process-send-region card-reader-stream (point-min) (point-max))
+	  (message "JCL: submitted.")
+	  )
+      (delete-process card-reader-stream))
+    )
   )
-)
 
 
 ;;;; Epilogue
