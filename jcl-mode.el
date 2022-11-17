@@ -18,7 +18,9 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-;;; Code:
+;;;; Commentary:
+
+;;;; Code:
 
 (defgroup jcl-mode nil
   "Major mode for editing JCL code."
@@ -55,30 +57,30 @@
 ;;; Highlightning
 
 (defconst jcl-operators-fields
-  (regexp-opt '("job" "exec" "dd" "proc" "pend" "include" "set") 'symbols))
+  (regexp-opt '("JOB" "EXEC" "DD" "PROC" "PEND" "INCLUDE" "SET") 'symbols))
 
 (defconst jcl-identifier-fields
   (mapcar (lambda (x) (concat "^" x)) '("//" "//*" "/*")))
 
 (defconst jcl-operands-fields
-  (regexp-opt '("class" "msgclass" "msglevel" "user" "password" "region"
-                "pgm" "cond"
-                "disp" "new" "old" "keep" "catlg" "shared" "shr" "delete" "del"
-                "vol" "volume" "ser" "serial"
-                "dsname" "dsn"
-                "dsorg"
-                "ddname"
-                "unit"
-                "space" "cyl" "trk"
-                "dcb" "recfm" "lrecl" "blksize"
-                "sysout"
-                "data" "dlm") 'paren))
+  (regexp-opt '("CLASS" "MSGCLASS" "MSGLEVEL" "USER" "PASSWORD" "REGION"
+                "PGM" "COND"
+                "DISP" "NEW" "OLD" "KEEP" "CATLG" "SHARED" "SHR" "DELETE" "DEL"
+                "VOL" "VOLUME" "SER" "SERIAL"
+                "DSNAME" "DSN"
+                "DSORG"
+                "DDNAME"
+                "UNIT"
+                "SPACE" "CYL" "TRK"
+                "DCB" "RECFM" "LRECL" "BLKSIZE"
+                "SYSOUT"
+                "DATA" "DLM") 'paren))
 
 (defconst jcl-jes2-statement
   "^/\\*[[:graph:]]+")
 
 (defconst jcl-if-endif
-  (regexp-opt '("if" "endif")))
+  (regexp-opt '("IF" "ENDIF")))
 
 (defconst jcl-procedure-statement
   (rx bol "XX"))
@@ -210,10 +212,13 @@ These are the names of jobs and steps.")
   :group 'jcl
   :type 'symbol)
 
+(defvar jcl-strings
+  "'.*'"
+  "JCL strings regular expression.")
 
 (defvar jcl-font-lock-keywords
   `(
-    (,jcl-strings . ,jcl-string-face)
+    ;;(,jcl-strings . ,jcl-string-face)
 
     (,jcl-names . (1 ,jcl-names-face))
 
@@ -221,9 +226,9 @@ These are the names of jobs and steps.")
 
     (,jcl-cc-when-envs . (1 ,jcl-operations-face))
 
-    (,(regexp-opt jcl-operations 'words) . ,jcl-operations-face)
+    (,jcl-operators-fields . ,jcl-operations-face)
 
-    (,(regexp-opt jcl-operands 'words) . ,jcl-operands-face)
+    (,jcl-operands-fields . ,jcl-operands-face)
 
     (,(regexp-opt jcl-operators nil) . ,jcl-operators-face)
 
@@ -262,6 +267,8 @@ These are the names of jobs and steps.")
   (let ((table (make-syntax-table)))
     ;; (modify-syntax-entry ?/ ". 1" jclst)
     ;; (modify-syntax-entry ?* ". 2" jclst)
+    (modify-syntax-entry ?'  "\""  table)
+    (modify-syntax-entry ?\" "\""  table)
     (modify-syntax-entry ?\n "> " table)
     table
     )
