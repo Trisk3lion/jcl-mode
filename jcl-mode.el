@@ -105,7 +105,7 @@
 
   (defconst jcl--syntax-propertize-comment-start
     (syntax-propertize-precompile-rules
-     (jcl-comment-start-re (1 "<"))))
+     (jcl-comment-start-re (0 "<"))))
 
   (defconst jcl--syntax-propertize-sequence-area
     (syntax-propertize-precompile-rules
