@@ -74,7 +74,7 @@
                 "SPACE" "CYL" "TRK"
                 "DCB" "RECFM" "LRECL" "BLKSIZE"
                 "SYSOUT"
-                "DATA" "DLM") 'paren))
+                "DATA" "DLM") 'symbols))
 
 (defconst jcl-jes2-statement
   "^/\\*[[:graph:]]+")
@@ -265,11 +265,17 @@ These are the names of jobs and steps.")
 
 (defvar jcl-mode-syntax-table
   (let ((table (make-syntax-table)))
-    ;; (modify-syntax-entry ?/ ". 1" jclst)
-    ;; (modify-syntax-entry ?* ". 2" jclst)
+    ;;
+    (modify-syntax-entry ?, "."    table)
+    (modify-syntax-entry ?= "."    table)
+    ;; Strings
     (modify-syntax-entry ?'  "\""  table)
     (modify-syntax-entry ?\" "\""  table)
+
+    ;; Comments
     (modify-syntax-entry ?\n "> " table)
+    ;; (modify-syntax-entry ?/ ". 1" jclst)
+    ;; (modify-syntax-entry ?* ". 2" jclst)
     table
     )
   "The JCL mode syntax table."
@@ -280,7 +286,7 @@ These are the names of jobs and steps.")
   (insert "//"))
 
 (defun jcl--electric-comment ()
-  (if (< (- (point) (line-beginning-position)) 4)
+  (if (> (- (point) (line-beginning-position)) 3)
       (progn (newline) (insert "//*"))
     (jcl--electric-enter)))
 
