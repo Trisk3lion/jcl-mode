@@ -326,7 +326,7 @@ These are the names of jobs and steps.")
     map))
 
 ;;; jcl-mode
-
+;;;###autoload
 (define-derived-mode jcl-mode prog-mode "JCL"
   "JCL mode is a major mode to edit IBM MVS or z/OS Job Control Language."
 
@@ -464,6 +464,7 @@ integer; its default is 3505."
 ;;  - https://github.com/lsiksous/jcl-mode.el/blob/master/jcl-mode.el
 ;;  - https://within-parens.blogspot.com/2020/12/iron-handling-with-emacs-lisp.html
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.jcl\\'" . jcl-mode))
 
 (provide 'jcl-mode)
