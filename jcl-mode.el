@@ -256,6 +256,21 @@ These are the names of jobs and steps.")
   "The JCL mode font-lock defaults specification."
   )
 
+;;; Commands
+
+(defun jcl-strip-sequence-nos (&optional do-space)
+  "Delete all text in column `jcl-line-length' (default 72) and up.
+This is assumed to be sequence numbers.  Normally also deletes
+trailing whitespace after stripping such text.  Supplying prefix
+arg DO-SPACE prevents stripping the whitespace."
+  (interactive "*p")
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward (format "^.\\{%d\\}\\(.*\\)" jcl-line-length)
+                              nil t)
+      (replace-match "" nil nil nil 1)
+      (unless do-space (delete-horizontal-space)))))
+
 ;;; Utility FUNCTION
 
 (defun jcl-locate-proc-mem (name)
