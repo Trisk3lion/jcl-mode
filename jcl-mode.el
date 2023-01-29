@@ -79,8 +79,9 @@
 (defconst jcl-jes2-statement
   "^/\\*[[:graph:]]+")
 
-(defconst jcl-if-endif
-  (regexp-opt '("IF" "ENDIF")))
+(defconst jcl-control-statement
+  (rx bol "//" (not "*") (0+ nonl) symbol-start (or "IF" "ENDIF" "ELSE") symbol-end))
+
 
 (defconst jcl-procedure-statement
   (rx bol "XX"))
@@ -230,6 +231,8 @@ These are the names of jobs and steps.")
 
     (,jcl-operands-fields . ,jcl-operands-face)
 
+    (,jcl-control-statement . (1 ,jcl-operations-face))
+
     (,(regexp-opt jcl-operators nil) . ,jcl-operators-face)
 
     (,jcl-proc-regexp (1 '(face nil mouse-face link)))
@@ -300,19 +303,31 @@ arg DO-SPACE prevents stripping the whitespace."
   (newline)
   (insert "//"))
 
+(defun jcl--electric-enter-indent ()
+  (let ((indent (save-excursion
+                  (skip-syntax-backward "\s-")
+                  (skip-syntax-backward "^\s-")
+                  (current-column))))
+    (jcl--electric-enter)
+    (indent-to-column indent)))
+
 (defun jcl--electric-comment ()
   (if (> (- (point) (line-beginning-position)) 3)
       (progn (newline) (insert "//*"))
     (jcl--electric-enter)))
 
-  (defun jcl--check-bol ()
-    (save-excursion
-      (beginning-of-line)
-      (looking-at "^...?")
-      (pcase  (match-string 0)
-        ("//*" 'comment)
-        ((rx bol "//" (? anychar)) 'standard)
-        (_ 'other))))
+(defun jcl--check-bol ()
+  (save-excursion
+    (beginning-of-line)
+    (looking-at "^...?")
+    (pcase  (match-string 0)
+      ("//*" 'comment)
+      ((rx bol "//" (? anychar))
+       (progn (end-of-line)
+              (skip-syntax-backward "\s-")
+              (if (eq (char-before) ?,)
+                  'parameter 'standard)))
+      (_ 'other))))
 
 
 (defun jcl-electric-enter ()
@@ -320,6 +335,7 @@ arg DO-SPACE prevents stripping the whitespace."
   (let ((bol (jcl--check-bol)))
     (pcase bol
       ('comment (jcl--electric-comment))
+      ('parameter (jcl--electric-enter-indent))
       ('standard (jcl--electric-enter))
       ('other (newline)))))
 
