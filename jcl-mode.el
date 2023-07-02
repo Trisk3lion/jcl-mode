@@ -26,7 +26,6 @@
   "Major mode for editing JCL code."
   :group 'languages)
 
-
 (defcustom jcl-outline-regexp
   (rx line-start "//"
       (1+ wordchar)
@@ -51,35 +50,71 @@
   :group 'jcl-mode
   :type 'integer)
 
+(defcustom jcl-proc-member-library nil
+  "List of strings which are folders to search for PROC members."
+  :group 'jcl-mode
+  :type '(string))
+
+(defcustom jcl-proc-member-suffix '("jcl" "JCL")
+  "List of file suffixes for PROC members."
+  :group 'jcl-mode
+  :type '(string))
+
+;; JCL Keywords
+
+(defvar jcl-operators
+  '("JOB" "EXEC" "DD" "PROC" "PEND" "INCLUDE" "SET"))
+
+(defvar jcl-operands
+  '("CLASS" "MSGCLASS" "MSGLEVEL" "USER" "PASSWORD" "REGION"
+    "PGM" "COND"
+    "DISP" "NEW" "OLD" "KEEP" "CATLG" "SHARED" "SHR" "DELETE" "DEL"
+    "VOL" "VOLUME" "SER" "SERIAL"
+    "DSNAME" "DSN"
+    "DSORG"
+    "DDNAME"
+    "UNIT"
+    "SPACE" "CYL" "TRK"
+    "DCB" "RECFM" "LRECL" "BLKSIZE"
+    "SYSOUT"
+    "DATA" "DLM"))
+
+(defvar jcl-control-statements
+  '("IF" "ENDIF" "THEN" "ELSE"))
+
+
+
+;; Completion for keywords
+;;
+
+(defvar jcl-keyword-list
+  (append jcl-operands jcl-operators jcl-control-statements))
+
+(when (bound-and-true-p cape-keyword-list)
+  (add-to-list 'cape-keyword-list
+                `(jcl-mode ,jcl-keyword-list)))
+
+(when (bound-and-true-p company-keywords-alist)
+  (add-to-list 'company-keywords-alist
+                `(jcl-mode ,jcl-keyword-list)))
 
 
 
 ;;; Highlightning
 
 (defconst jcl-operators-fields
-  (regexp-opt '("JOB" "EXEC" "DD" "PROC" "PEND" "INCLUDE" "SET") 'symbols))
+  (regexp-opt jcl-operators 'symbols))
 
 (defconst jcl-identifier-fields
   (mapcar (lambda (x) (concat "^" x)) '("//" "//*" "/*")))
 
 (defconst jcl-operands-fields
-  (regexp-opt '("CLASS" "MSGCLASS" "MSGLEVEL" "USER" "PASSWORD" "REGION"
-                "PGM" "COND"
-                "DISP" "NEW" "OLD" "KEEP" "CATLG" "SHARED" "SHR" "DELETE" "DEL"
-                "VOL" "VOLUME" "SER" "SERIAL"
-                "DSNAME" "DSN"
-                "DSORG"
-                "DDNAME"
-                "UNIT"
-                "SPACE" "CYL" "TRK"
-                "DCB" "RECFM" "LRECL" "BLKSIZE"
-                "SYSOUT"
-                "DATA" "DLM") 'symbols))
+  (regexp-opt jcl-operands 'symbols))
 
 (defconst jcl-jes2-statement
   "^/\\*[[:graph:]]+")
 
-(defconst jcl-control-statement
+(defconst jcl-hl-control-statement
   (rx bol "//" (not "*") (0+ nonl) symbol-start (or "IF" "ENDIF" "ELSE") symbol-end))
 
 
@@ -231,7 +266,7 @@ These are the names of jobs and steps.")
 
     (,jcl-operands-fields . ,jcl-operands-face)
 
-    (,jcl-control-statement . (1 ,jcl-operations-face))
+    (,jcl-hl-control-statement . (1 ,jcl-operations-face))
 
     (,(regexp-opt jcl-operators nil) . ,jcl-operators-face)
 
@@ -274,10 +309,10 @@ arg DO-SPACE prevents stripping the whitespace."
       (replace-match "" nil nil nil 1)
       (unless do-space (delete-horizontal-space)))))
 
-;;; Utility FUNCTION
+;;; Utility function
 
 (defun jcl-locate-proc-mem (name)
-  (locate-file name jcl-proc-member-library jcl-proc-mem-suffix))
+  (locate-file name jcl-proc-member-library jcl-proc-member-suffix))
 
 ;;; jcl-mode-syntax-table
 
@@ -360,7 +395,6 @@ arg DO-SPACE prevents stripping the whitespace."
 ;;;###autoload
 (define-derived-mode jcl-mode prog-mode "JCL"
   "JCL mode is a major mode to edit IBM MVS or z/OS Job Control Language."
-
   :syntax-table jcl-mode-syntax-table
 
   (setq-local font-lock-defaults jcl-font-lock-defaults)
