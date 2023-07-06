@@ -114,8 +114,8 @@
 (defconst jcl-jes2-statement
   "^/\\*[[:graph:]]+")
 
-(defconst jcl-hl-control-statement
-  (rx bol "//" (not "*") (0+ nonl) symbol-start (or "IF" "ENDIF" "ELSE") symbol-end))
+(defconst jcl-control-statement
+  (rx bol "//" (not "*") (0+ nonl) symbol-start (group (or "IF" "ENDIF" "ELSE")) symbol-end))
 
 
 (defconst jcl-procedure-statement
