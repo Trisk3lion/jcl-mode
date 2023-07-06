@@ -114,7 +114,7 @@
 (defconst jcl-jes2-statement
   "^/\\*[[:graph:]]+")
 
-(defconst jcl-control-statement
+(defconst jcl-hl-control-statement
   (rx bol "//" (not "*") (0+ nonl) symbol-start (group (or "IF" "ENDIF" "ELSE")) symbol-end))
 
 
@@ -528,6 +528,7 @@ integer; its default is 3505."
 ;; Inspiration:
 ;;  - https://github.com/lsiksous/jcl-mode.el/blob/master/jcl-mode.el
 ;;  - https://within-parens.blogspot.com/2020/12/iron-handling-with-emacs-lisp.html
+;;  - https://github.com/spgennard/vscode_cobol/blob/main/syntaxes/jcl.tmLanguage.json
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.jcl\\'" . jcl-mode))
