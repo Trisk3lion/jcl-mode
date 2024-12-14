@@ -92,7 +92,7 @@
 
 (when (bound-and-true-p cape-keyword-list)
   (add-to-list 'cape-keyword-list
-                `(jcl-mode ,jcl-keyword-list)))
+               `(jcl-mode ,@jcl-keyword-list)))
 
 (when (bound-and-true-p company-keywords-alist)
   (add-to-list 'company-keywords-alist
