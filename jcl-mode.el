@@ -1,9 +1,14 @@
 ;;; jcl-mode.el --- Major mode for editing JCL - Job Control Language - files  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022  Kristofer Hjelmtorp
+;; Copyright (C) 2022-2024  Kristofer Hjelmtorp
 
-;; Author: Kristofer Hjelmtorp <kristofer.hjelmtorp@mailbox.org>
+;; Author: Kristofer Hjelmtorp <kristofer@hjelmtorp.se>
+;; Maintainer: Kristofer Hjelmtorp <kristofer@hjelmtorp.se>
+;; URL: https://github.com/Trisk3lion/jcl-mode
+;; Version: 1.0
+;; Created: 10 November 2022
 ;; Keywords: languages
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
