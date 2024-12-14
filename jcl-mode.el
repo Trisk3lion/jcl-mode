@@ -66,7 +66,7 @@
   '("JOB" "EXEC" "DD" "PROC" "PEND" "INCLUDE" "SET"))
 
 (defvar jcl-operands
-  '("CLASS" "MSGCLASS" "MSGLEVEL" "USER" "PASSWORD" "REGION"
+  '("CLASS" "MSGCLASS" "MSGLEVEL" "USER" "PASSWORD" "REGION" "JOBRC" "NOTIFY"
     "PGM" "COND"
     "DISP" "NEW" "OLD" "KEEP" "CATLG" "SHARED" "SHR" "DELETE" "DEL"
     "VOL" "VOLUME" "SER" "SERIAL"
@@ -147,8 +147,7 @@
     (syntax-propertize-precompile-rules
      ;; TODO: Override open strings
      ("^.\\{72\\}\\(.\\)" (1 "<")))
-    "Syntax rule to mark text in the sequence area as comments.")
-  )
+    "Syntax rule to mark text in the sequence area as comments."))
 
 (defun jcl--syntax-propertize-function (beg end)
   (funcall (syntax-propertize-rules
@@ -248,43 +247,22 @@ These are the names of jobs and steps.")
   :group 'jcl
   :type 'symbol)
 
-(defvar jcl-strings
-  "'.*'"
-  "JCL strings regular expression.")
-
 (defvar jcl-font-lock-keywords
-  `(
-    ;;(,jcl-strings . ,jcl-string-face)
-
-    (,jcl-names . (1 ,jcl-names-face))
-
+  `((,jcl-names . (1 ,jcl-names-face))
     (,jcl-cc-when . ,jcl-operands-face)
-
     (,jcl-cc-when-envs . (1 ,jcl-operations-face))
-
     (,jcl-operators-fields . ,jcl-operations-face)
-
     (,jcl-operands-fields . ,jcl-operands-face)
-
     (,jcl-hl-control-statement . (1 ,jcl-operations-face))
-
     (,(regexp-opt jcl-operators nil) . ,jcl-operators-face)
-
     (,jcl-proc-regexp (1 '(face nil mouse-face link)))
-
     (,jcl-pgm-regexp (1 '(face nil mouse-face link)))
-
     (,jcl-include-regexp (1 '(face nil mouse-face link)))
-
     (,jcl-expanded . (0 ,jcl-expanded-face t))
-
     ;;These must be last.
     (,jcl-card-end-comments-1 . (1 ,jcl-comment-face))
-    (,jcl-card-end-comments-2 . (1 ,jcl-comment-face))
-    ;;(,jcl-comments . (0 ,jcl-comment-face t))
-    )
-  "The JCL mode font-lock keyword specification."
-  )
+    (,jcl-card-end-comments-2 . (1 ,jcl-comment-face)))
+  "The JCL mode font-lock keyword specification.")
 
 
 (defvar jcl-font-lock-defaults
@@ -421,20 +399,8 @@ arg DO-SPACE prevents stripping the whitespace."
               outline-regexp jcl-outline-regexp
               outline-heading-end-regexp jcl-outline-end-regexp)
 
-  ;; Set up the menus.
-
-  ;; (easy-menu-define jcl-mainframe-os-menu jcl-mode-map
-  ;;   "JCL commands"
-  ;;   '("JCL OS"
-  ;;     ["Submit" jcl-submit]
-  ;;     ["Submit JCL File" jcl-submit-file])
-  ;;   )
-
   (setq-local imenu-generic-expression
 	      (reverse jcl-imenu-generic-expression))
-
-  ;; (imenu-add-to-menubar "JCL Code")
-
   )
 
 
