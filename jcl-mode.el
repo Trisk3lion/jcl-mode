@@ -55,7 +55,6 @@
   :group 'jcl-mode
   :type 'integer)
 
-<<<<<<< HEAD
 (defcustom jcl-proc-member-library nil
   "List of strings which are folders to search for PROC members."
   :group 'jcl-mode
@@ -103,25 +102,6 @@
 (when (bound-and-true-p company-keywords-alist)
   (add-to-list 'company-keywords-alist
                 `(jcl-mode ,jcl-keyword-list)))
-
-
-
-;; FTP Submit
-(defcustom jcl-jobs-ftp-server-address nil
-  "Server address for ftp server for working with jobs."
-  :group 'jcl-mode
-  :type 'string)
-
-(defcustom jcl-jobs-ftp-server-port "21"
-  "Server port for ftp server for working with jobs."
-  :group 'jcl-mode
-  :type 'string)
-
-(defcustom jcl-submit-function 'card-reader
-  "Function to use foor submitting jcl's."
-  :group 'jcl-mode)
-
-
 
 ;;; Highlightning
 
@@ -314,25 +294,28 @@ arg DO-SPACE prevents stripping the whitespace."
 (defun jcl-locate-proc-mem (name)
   (locate-file name jcl-proc-member-library jcl-proc-member-suffix))
 
+
 ;;; jcl-mode-syntax-table
 
 (defvar jcl-mode-syntax-table
   (let ((table (make-syntax-table)))
-    ;;
+    ;;Punctuation
     (modify-syntax-entry ?, "."    table)
     (modify-syntax-entry ?= "."    table)
+    (modify-syntax-entry ?\/ "." table)  ;; Treat / as punctuation
+    (modify-syntax-entry ?\* "." table)  ;; Treat * as punctuation
     ;; Strings
     (modify-syntax-entry ?'  "\""  table)
     (modify-syntax-entry ?\" "\""  table)
 
+    (modify-syntax-entry ?\( "()" table)
+    (modify-syntax-entry ?\) ")(" table)
+    (modify-syntax-entry ?' "$" table)
+
     ;; Comments
     (modify-syntax-entry ?\n "> " table)
-    ;; (modify-syntax-entry ?/ ". 1" jclst)
-    ;; (modify-syntax-entry ?* ". 2" jclst)
-    table
-    )
-  "The JCL mode syntax table."
-  )
+    table)
+  "Syntax table for jcl-mode.")
 
 (defun jcl--electric-enter ()
   (newline)
@@ -467,12 +450,25 @@ arg DO-SPACE prevents stripping the whitespace."
 
 ;;;; Submit functions
 
-(defcustom jcl-ftp-server nil)
+
 
-(defcustom jcl-ftp-port 21)
+;; FTP Submit
 
-(defun jcl-submit-by-ftp ())
+(defcustom jcl-jobs-ftp-server-address nil
+  "Server address for ftp server for working with jobs."
+  :group 'jcl-mode
+  :type 'string)
 
+(defcustom jcl-jobs-ftp-server-port "21"
+  "Server port for ftp server for working with jobs."
+  :group 'jcl-mode
+  :type 'string)
+
+(defcustom jcl-submit-function 'card-reader
+  "Function to use foor submitting jcl's."
+  :group 'jcl-mode)
+
+;; Card reader submit
 
 (defun jcl--submit-to-card-reader (string)
   "Submits STRING to the card reader.
@@ -519,6 +515,9 @@ arg DO-SPACE prevents stripping the whitespace."
     ('card-reader (jcl-submit-file-by-reader))
     ('ftp (jcl-submit-file-by-ftp))
     (_ (user-error "No submit function specified."))))
+
+
+
 
 ;;;; FTP
 
