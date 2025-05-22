@@ -55,6 +55,7 @@
   :group 'jcl-mode
   :type 'integer)
 
+<<<<<<< HEAD
 (defcustom jcl-proc-member-library nil
   "List of strings which are folders to search for PROC members."
   :group 'jcl-mode
@@ -102,6 +103,23 @@
 (when (bound-and-true-p company-keywords-alist)
   (add-to-list 'company-keywords-alist
                 `(jcl-mode ,jcl-keyword-list)))
+
+
+
+;; FTP Submit
+(defcustom jcl-jobs-ftp-server-address nil
+  "Server address for ftp server for working with jobs."
+  :group 'jcl-mode
+  :type 'string)
+
+(defcustom jcl-jobs-ftp-server-port "21"
+  "Server port for ftp server for working with jobs."
+  :group 'jcl-mode
+  :type 'string)
+
+(defcustom jcl-submit-function 'card-reader
+  "Function to use foor submitting jcl's."
+  :group 'jcl-mode)
 
 
 
@@ -175,7 +193,6 @@
 
   Anything after the operands in a card is a comment; this regexp
   selects them.")
-
 
 (defvar jcl-card-end-comments-2
   "// +[[:graph:]]+ +\\([[:graph:]].*\\)"
@@ -384,10 +401,8 @@ arg DO-SPACE prevents stripping the whitespace."
 
   (face-remap-add-relative jcl-comment-face  :weight 'bold)
   (face-remap-add-relative jcl-operators-face  :weight 'bold
-			   :foreground "Forest Green") ; This may be too much.
+			   :foreground "Forest Green")
   (face-remap-add-relative jcl-operations-face  :weight 'bold)
-
-  (setq-local fill-column jcl-fill-column)
 
   (setq-local syntax-propertize-function #'jcl--syntax-propertize-function)
 
@@ -404,6 +419,21 @@ arg DO-SPACE prevents stripping the whitespace."
               outline-regexp jcl-outline-regexp
               outline-heading-end-regexp jcl-outline-end-regexp)
 
+
+  ;; Filling
+  (setq-local fill-column jcl-fill-column
+              comment-auto-fill-only-comments t)
+
+  ;; Set up the menus.
+
+  ;; (easy-menu-define jcl-mainframe-os-menu jcl-mode-map
+  ;;   "JCL commands"
+  ;;   '("JCL OS"
+  ;;     ["Submit" jcl-submit]
+  ;;     ["Submit JCL File" jcl-submit-file])
+  ;;   )
+
+
   (setq-local imenu-generic-expression
 	      (reverse jcl-imenu-generic-expression))
   )
@@ -411,6 +441,20 @@ arg DO-SPACE prevents stripping the whitespace."
 
 ;;;; Commands
 ;;;; ========
+
+(defun jcl-strip-sequence-num (&optional do-space)
+  "Delete all text in column `jcl-line-length' (default 72) and up.
+This is assumed to be sequence numbers.  Normally also deletes
+trailing whitespace after stripping such text.  Supplying prefix
+arg DO-SPACE prevents stripping the whitespace."
+  (interactive "*p")
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward (format "^.\\{%d\\}\\(.*\\)" jcl-line-length)
+                              nil t)
+      (replace-match "" nil nil nil 1)
+      (unless do-space (delete-horizontal-space)))))
+
 
 (defun jcl-comment-current-line ()
   "Add * in the third column."
@@ -420,77 +464,79 @@ arg DO-SPACE prevents stripping the whitespace."
   (insert "*")
   )
 
-(defun jcl-submit (&optional port)
-  "Submits the buffer's content to the card reader at PORT.
 
-The buffer contains JCL cards (i.e., lines) which are submitted to a
-card reader  listening on PORT.  PORT is an integer; its default is
-3505."
+;;;; Submit functions
 
-  (interactive
-   (let ((p (read-number "JCL: card reader number/port: " 3505))
-	 )
-     (list p)))
+(defcustom jcl-ftp-server nil)
 
-  (unless port
-    (setq port 3505))
+(defcustom jcl-ftp-port 21)
 
-  (message "JCL: submitting to card reader number/port %s." port)
+(defun jcl-submit-by-ftp ())
 
-  (let ((card-reader-stream
-	 (open-network-stream "JCL OS CARD READER"
-			      nil
-			      "127.0.0.1"
-			      port
-			      :type 'plain
-			      ))
-	)
+
+(defun jcl--submit-to-card-reader (string)
+  "Submits STRING to the card reader.
+
+  The buffer contains JCL cards (i.e., lines) which are submitted to a
+  card reader  listening on PORT.  PORT is an integer; its default is
+  3505."
+  (let ((port (or jcl-fpt-port)
+              (read-number "JCL: card reader number/port: " 21))
+        (stream (open-network-stream "card-reader"
+			             nil
+			             "127.0.0.1"
+			             port
+			             :type 'plain)))
+    (message "JCL: submitting to card reader number/port %d." port)
     (unwind-protect
-	(progn
-	  (process-send-region card-reader-stream (point-min) (point-max))
+        (progn
+	  (process-send-region card-reader-stream string)
 	  (message "JCL: submitted."))
-      (delete-process card-reader-stream))
-    ))
+      (delete-process card-reader-stream))))
 
+(defun jcl-submit-buffer-by-reader ()
+  (interactive)
+  (jcl--submit-to-card-reader (buffer-string)))
 
-(defalias 'submit 'jcl-submit)
-
-
-(defun jcl-submit-file (jcl-file &optional port)
-  "Submits the file JCL-FILE to the card reader at PORT.
-
-The file JCL-FILE contains JCL cards (i.e., lines) which are
-submitted to a card reader listening on PORT.  PORT is an
-integer; its default is 3505."
-
+(defun jcl-submit-file-by-reader (file)
   (interactive
-   (let ((f (read-file-name "JCL: card file: " nil nil 'confirm))
-         (p (read-number "JCL: card reader number/port: " 3505))
-         )
-     (list f p)))
+   (list (expand-file-name (read-file-name "Submit file: "))))
+  (with-temp-buffer
+    (insert-file-contents file)
+    (jcl--submit-to-card-reader (buffer-string))))
 
-  (unless port
-    (setq port 3505))
+(defun jcl-submit-buffer ()
+  (interactive)
+  (pcase jcl-submit-function
+    ((pred functionp) (funcall jcl-submit-function))
+    ('card-reader (jcl-submit-buffer-by-reader))
+    ('ftp (jcl-submit-buffer-by-ftp))))
 
-  (message "JCL: submitting '%s' to card reader number/port %s."
-	   jcl-file port)
-  (let ((card-reader-stream
-         (open-network-stream "JCL OS CARD READER"
-			      nil
-			      "127.0.0.1"
-			      port
-			      :type 'plain
-			      ))
-        )
-    (unwind-protect
-        (with-temp-buffer
-	  (insert-file-contents jcl-file)
-	  (process-send-region card-reader-stream (point-min) (point-max))
-	  (message "JCL: submitted.")
-	  )
-      (delete-process card-reader-stream))
-    )
-  )
+(defun jcl-submit-file ()
+  (interactive)
+  (pcase jcl-submit-function
+    ((pred functionp) (funcall jcl-submit-function))
+    ('card-reader (jcl-submit-file-by-reader))
+    ('ftp (jcl-submit-file-by-ftp))
+    (_ (user-error "No submit function specified."))))
+
+;;;; FTP
+
+;; (defvar jcl-proc (ange-ftp-get-process jcl-jobs-ftp-server-address "s7635c"))
+;; (ange-ftp-raw-send-cmd jcl-proc "site filetype=jes" nil)
+
+
+;;;; easy-menu
+
+;; (easy-menu-define jcl-mode-menu jcl-mode-map
+;;   "Menu for JCL mode."
+;;   '("JCL"
+;;     "---"
+;;     ("Submit"
+;;      ["Submit Buffer"          jcl-submit-buffer]
+;;      ["Submit File"          jcl-submit-file]
+;;     "---"
+;;     ["Customize Mode"        (customize-group 'jcl) t]))
 
 
 ;;;; Epilogue
