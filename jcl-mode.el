@@ -67,12 +67,15 @@
 
 ;; JCL Keywords
 
-(defvar jcl-operators
-  '("JOB" "EXEC" "DD" "PROC" "PEND" "INCLUDE" "SET"))
+(defconst jcl-statements
+  '("JOB" "EXEC" "DD"))
 
-(defvar jcl-operands
-  '("CLASS" "MSGCLASS" "MSGLEVEL" "USER" "PASSWORD" "REGION" "JOBRC" "NOTIFY"
-    "PGM" "COND"
+(defconst jcl-operators
+  '("PROC" "PEND" "INCLUDE" "SET" "JCLLIB"))
+
+(defconst jcl-operands
+  '("CLASS" "MSGCLASS" "MSGLEVEL" "USER" "PASSWORD" "REGION" "JOBRC" "NOTIFY" "TIME"
+    "PGM" "COND" "MEMBER" "PARM"
     "DISP" "NEW" "OLD" "KEEP" "CATLG" "SHARED" "SHR" "DELETE" "DEL"
     "VOL" "VOLUME" "SER" "SERIAL"
     "DSNAME" "DSN"
@@ -92,8 +95,8 @@
 ;; Completion for keywords
 ;;
 
-(defvar jcl-keyword-list
-  (append jcl-operands jcl-operators jcl-control-statements))
+(defconst jcl-keyword-list
+  (append jcl-statements jcl-operators jcl-operands jcl-control-statements))
 
 (when (bound-and-true-p cape-keyword-list)
   (add-to-list 'cape-keyword-list
@@ -109,7 +112,11 @@
   (regexp-opt jcl-operators 'symbols))
 
 (defconst jcl-identifier-fields
-  (mapcar (lambda (x) (concat "^" x)) '("//" "//*" "/*")))
+  (mapcar (lambda (x) (concat "^" x))
+          '("//" "//*" "/*")))
+
+(defconst jcl-statement-fields
+  (regexp-opt jcl-statements 'symbols))
 
 (defconst jcl-operands-fields
   (regexp-opt jcl-operands 'symbols))
@@ -127,14 +134,16 @@
 (defconst jcl-overwritten-statement
   (rx bol "X/"))
 
-(defvar jcl-operators
-  '("=" "&" "&&" "*" "(" ")" ",")
-  "JCL operators.  A really minimal set.")
+;; (defconst jcl-operators
+;;   '("=" "&" "&&" "*" "(" ")" ",")
+;;   "JCL operators.  A really minimal set.")
+
+(rx-define jcl-name-rx
+  (seq (any "A-Z" "#@$")
+       (** 0 7 (any "A-Z" "0-9" "#@$"))))
 
 (defconst jcl-names
-  (rx bol "//"
-      (group (not "*")
-             (+ graph)))
+  (rx bol "//" (group jcl-name-rx))
   "JCL names.
   These are the names of jobs and steps.")
 
@@ -142,20 +151,44 @@
   (defconst jcl-comment-start-re
     (rx bol "//*"))
 
+  (defconst jcl-card-end-comments-1
+    (rx bol "//" (1+ (not (or "*" " "))) (1+ " ") (1+ graph) (1+ " ") (1+ graph) (1+ " ") (group (0+ nonl)))
+    "JCL end of card comments for full cards.
+
+  Anything after the operands in a card is a comment; this regexp
+  selects them.")
+
+  (defconst jcl-card-end-comments-2
+    "// +\\(?:\\(?:INCLUDE\\|DD\\|SET\\|JCLLIB\\) +\\)?[[:graph:]]+\\(?: +\\(.*\\)\\)?"
+    "JCL end of card comments for continuation cards.
+
+  Anything after the operands in a card is a comment; this regexp
+  selects them in case of continuation cards that do not have the
+  name and operation.")
+
   (defconst jcl--syntax-propertize-comment-start
     (syntax-propertize-precompile-rules
      (jcl-comment-start-re (0 "<"))))
 
   (defconst jcl--syntax-propertize-sequence-area
     (syntax-propertize-precompile-rules
-     ;; TODO: Override open strings
      ("^.\\{72\\}\\(.\\)" (1 "<")))
-    "Syntax rule to mark text in the sequence area as comments."))
+    "Syntax rule to mark text in the sequence area as comments.")
+
+  (defconst jcl--syntax-propertize-end-card-1
+    (syntax-propertize-precompile-rules
+     (jcl-card-end-comments-1 (1 "<"))))
+
+  (defconst jcl--syntax-propertize-end-card-2
+    (syntax-propertize-precompile-rules
+     (jcl-card-end-comments-2 (1 "<")))))
 
 (defun jcl--syntax-propertize-function (beg end)
   (funcall (syntax-propertize-rules
             jcl--syntax-propertize-comment-start
-            jcl--syntax-propertize-sequence-area)
+            jcl--syntax-propertize-sequence-area
+            jcl--syntax-propertize-end-card-1
+            jcl--syntax-propertize-end-card-2)
            beg end))
 
 (defvar jcl-comment
@@ -164,23 +197,7 @@
 
 (defvar jcl-expanded
   "^XX.*"
-  "Lines with expanded INCLUDEs.")
-
-
-(defvar jcl-card-end-comments-1
-  "^//[^* ]+ +[[:graph:]]* +[[:graph:]]+ +\\([[:graph:]].*\\)"
-  "JCL end of card comments for full cards.
-
-  Anything after the operands in a card is a comment; this regexp
-  selects them.")
-
-(defvar jcl-card-end-comments-2
-  "// +[[:graph:]]+ +\\([[:graph:]].*\\)"
-  "JCL end of card comments for continuation cards.
-
-  Anything after the operands in a card is a comment; this regexp
-  selects them in case of continuation cards that do not have the
-  name and operation.")
+  "Lines with expanded INCLUDE.")
 
 ;;; JCL Regexps
 
@@ -220,6 +237,12 @@ These are the names of jobs and steps.")
   :type 'symbol
   )
 
+(defcustom jcl-statement-face 'font-lock-keyword-face
+  "The face used to fontify operations in JCL mode."
+  :group 'jcl
+  :type 'symbol
+  )
+
 (defcustom jcl-operations-face 'font-lock-keyword-face
   "The face used to fontify operations in JCL mode."
   :group 'jcl
@@ -253,17 +276,14 @@ These are the names of jobs and steps.")
   `((,jcl-names . (1 ,jcl-names-face))
     (,jcl-cc-when . ,jcl-operands-face)
     (,jcl-cc-when-envs . (1 ,jcl-operations-face))
+    (,jcl-statement-fields . ,jcl-statement-face)
     (,jcl-operators-fields . ,jcl-operations-face)
     (,jcl-operands-fields . ,jcl-operands-face)
     (,jcl-hl-control-statement . (1 ,jcl-operations-face))
-    (,(regexp-opt jcl-operators nil) . ,jcl-operators-face)
     (,jcl-proc-regexp (1 '(face nil mouse-face link)))
     (,jcl-pgm-regexp (1 '(face nil mouse-face link)))
     (,jcl-include-regexp (1 '(face nil mouse-face link)))
-    (,jcl-expanded . (0 ,jcl-expanded-face t))
-    ;;These must be last.
-    (,jcl-card-end-comments-1 . (1 ,jcl-comment-face))
-    (,jcl-card-end-comments-2 . (1 ,jcl-comment-face)))
+    (,jcl-expanded . (0 ,jcl-expanded-face t)))
   "The JCL mode font-lock keyword specification.")
 
 
@@ -357,6 +377,82 @@ arg DO-SPACE prevents stripping the whitespace."
       ('standard (jcl--electric-enter))
       ('other (newline)))))
 
+(defconst jcl-block-start-regexp
+  (rx bol jcl-name-rx (1+ "\s")
+      (group (eval (regexp-opt (append jcl-statements jcl-operators))))))
+
+(defun jcl-forward-sexp-function (arg)
+  "Skip over JCL blocks.
+This is used by hideshow to navigate block structures.
+ARG is the direction and number of blocks to move."
+  (let ((start-point (point))
+        (block-regexp jcl-block-start-regexp))
+    (if (> arg 0)
+        ;; Forward movement
+        (if (looking-at block-regexp)
+            ;; If we're at the start of a block
+            (progn
+              (end-of-line)
+              ;; Find the next block start or EOF
+              (if (re-search-forward block-regexp nil t)
+                  (goto-char (match-beginning 0))
+                (goto-char (point-max))))
+          ;; Not at a block start, find one
+          (when (re-search-forward block-regexp nil t)
+            (goto-char (match-beginning 0))))
+      ;; Backward movement
+      (unless (re-search-backward block-regexp nil t)
+        (goto-char (point-min))))
+    ;; Return non-nil if we moved
+    (/= start-point (point))))
+
+;;; Hideshow support
+
+(defun jcl-hideshow-forward-sexp (_arg)
+  "Function used by hideshow for navigating JCL blocks.
+This function finds the end of the current block by looking for the next
+block start or the end of the file."
+  (let ((block-regexp jcl-block-start-regexp))
+    (when (looking-at block-regexp)
+      (end-of-line))
+    (if (re-search-forward block-regexp nil t)
+        (goto-char (match-beginning 0))
+      (goto-char (point-max)))
+    (jcl-forward-adjust-back)))
+
+(defun jcl-comment-p ()
+  "Return non-nil if point is within a comment.
+Returns nil if point in on `comment-start'."
+  (let ((ppss (syntax-ppss)))
+    (or (progn (setq ppss (nthcdr 3 ppss))
+               (car (setq ppss (cdr ppss))))
+        (nth 3 ppss))))
+
+(defun jcl-forward-adjust-back ()
+  (while (and (not (backward-char 1))
+              (jcl-comment-p))
+    (beginning-of-line)))
+
+;; (skip-syntax-backward "> ")
+
+(defun jcl-hs-adjust-block-beginning (initial)
+  "Adjust INITIAL position for hideshow.
+Makes sure the entire line is hidden."
+  (save-excursion
+    (goto-char initial)
+    (line-end-position)))
+
+;; Add JCL to hs-special-modes-alist
+(add-to-list 'hs-special-modes-alist
+             `(jcl-mode
+               (jcl-block-start-regexp 1) ; Block start
+               nil ; Block end - using forward-sexp function instead
+               "^//\\*" ; Comment start
+               jcl-hideshow-forward-sexp ; Forward sexp function
+               jcl-hs-adjust-block-beginning)) ; Adjust beginning function
+
+
+
 ;;; jcl-imenu-generic-expression
 
 (defvar jcl-imenu-generic-expression
@@ -381,13 +477,10 @@ arg DO-SPACE prevents stripping the whitespace."
   :syntax-table jcl-mode-syntax-table
 
   (setq-local font-lock-defaults jcl-font-lock-defaults)
-
-  (face-remap-add-relative jcl-comment-face  :weight 'bold)
-  (face-remap-add-relative jcl-operators-face  :weight 'bold
-			   :foreground "Forest Green")
-  (face-remap-add-relative jcl-operations-face  :weight 'bold)
-
   (setq-local syntax-propertize-function #'jcl--syntax-propertize-function)
+
+  ;; Movement
+  (setq-local forward-sexp-function #'jcl-forward-sexp-function)
 
   ;; Comments.
   (setq-local comment-start "//*"
@@ -444,8 +537,7 @@ arg DO-SPACE prevents stripping the whitespace."
   (interactive)
   (move-to-column 2)
   (delete-char 1)
-  (insert "*")
-  )
+  (insert "*"))
 
 
 ;;;; Submit functions
@@ -454,21 +546,32 @@ arg DO-SPACE prevents stripping the whitespace."
 
 ;; FTP Submit
 
-(defcustom jcl-jobs-ftp-server-address nil
+(defcustom jcl-ftp-host nil
   "Server address for ftp server for working with jobs."
   :group 'jcl-mode
   :type 'string)
 
-(defcustom jcl-jobs-ftp-server-port "21"
+(defcustom jcl-ftp-port "21"
   "Server port for ftp server for working with jobs."
   :group 'jcl-mode
   :type 'string)
 
 (defcustom jcl-submit-function 'card-reader
   "Function to use foor submitting jcl's."
+  :type 'symbol
   :group 'jcl-mode)
 
 ;; Card reader submit
+
+(defcustom jcl-card-reader-host "127.0.0.1"
+  "Server address for ftp server for working with jobs."
+  :group 'jcl-mode
+  :type 'string)
+
+(defcustom jcl-card-reader-port "21"
+  "Server port for ftp server for working with jobs."
+  :group 'jcl-mode
+  :type 'string)
 
 (defun jcl--submit-to-card-reader (string)
   "Submits STRING to the card reader.
@@ -476,25 +579,27 @@ arg DO-SPACE prevents stripping the whitespace."
   The buffer contains JCL cards (i.e., lines) which are submitted to a
   card reader  listening on PORT.  PORT is an integer; its default is
   3505."
-  (let ((port (or jcl-fpt-port)
-              (read-number "JCL: card reader number/port: " 21))
-        (stream (open-network-stream "card-reader"
-			             nil
-			             "127.0.0.1"
-			             port
-			             :type 'plain)))
+  (let* ((host (or jcl-card-reader-host
+                   (read-string "JCL: FTP Hostname: ")))
+         (port (or jcl-card-reader-port
+                   (read-number "JCL: card reader number/port: " 21)))
+         (stream (open-network-stream "card-reader"
+			              nil
+			              host
+			              port
+			              :type 'plain)))
     (message "JCL: submitting to card reader number/port %d." port)
     (unwind-protect
         (progn
-	  (process-send-region card-reader-stream string)
+	  (process-send-string stream string)
 	  (message "JCL: submitted."))
-      (delete-process card-reader-stream))))
+      (delete-process stream))))
 
 (defun jcl-submit-buffer-by-reader ()
   (interactive)
   (jcl--submit-to-card-reader (buffer-string)))
 
-(defun jcl-submit-file-by-reader (file)
+(defun jcl-submit-file-by-reader (&optional file)
   (interactive
    (list (expand-file-name (read-file-name "Submit file: "))))
   (with-temp-buffer
@@ -505,15 +610,16 @@ arg DO-SPACE prevents stripping the whitespace."
   (interactive)
   (pcase jcl-submit-function
     ((pred functionp) (funcall jcl-submit-function))
+    ('ftp (jcl-submit-buffer-by-ftp))
     ('card-reader (jcl-submit-buffer-by-reader))
-    ('ftp (jcl-submit-buffer-by-ftp))))
+    (_ (user-error "No submit function specified."))))
 
 (defun jcl-submit-file ()
   (interactive)
   (pcase jcl-submit-function
     ((pred functionp) (funcall jcl-submit-function))
-    ('card-reader (jcl-submit-file-by-reader))
     ('ftp (jcl-submit-file-by-ftp))
+    ('card-reader (jcl-submit-file-by-reader))
     (_ (user-error "No submit function specified."))))
 
 
@@ -521,7 +627,7 @@ arg DO-SPACE prevents stripping the whitespace."
 
 ;;;; FTP
 
-;; (defvar jcl-proc (ange-ftp-get-process jcl-jobs-ftp-server-address "s7635c"))
+;; (defvar jcl-proc (ange-ftp-get-process jcl-ftp-host "s7635c"))
 ;; (ange-ftp-raw-send-cmd jcl-proc "site filetype=jes" nil)
 
 
