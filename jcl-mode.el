@@ -367,7 +367,6 @@ arg DO-SPACE prevents stripping the whitespace."
                   'parameter 'standard)))
       (_ 'other))))
 
-
 (defun jcl-electric-enter ()
   (interactive)
   (let ((bol (jcl--check-bol)))
@@ -378,8 +377,10 @@ arg DO-SPACE prevents stripping the whitespace."
       ('other (newline)))))
 
 (defconst jcl-block-start-regexp
-  (rx bol jcl-name-rx (1+ "\s")
-      (group (eval (regexp-opt (append jcl-statements jcl-operators))))))
+  (concat (rx bol "//" jcl-name-rx (1+ "\s"))
+          "\\("
+          (regexp-opt (append jcl-statements jcl-operators))
+          "\\)"))
 
 (defun jcl-forward-sexp-function (arg)
   "Skip over JCL blocks.
@@ -429,11 +430,10 @@ Returns nil if point in on `comment-start'."
         (nth 3 ppss))))
 
 (defun jcl-forward-adjust-back ()
+  ;; (skip-syntax-backward "<>")
   (while (and (not (backward-char 1))
               (jcl-comment-p))
     (beginning-of-line)))
-
-;; (skip-syntax-backward "> ")
 
 (defun jcl-hs-adjust-block-beginning (initial)
   "Adjust INITIAL position for hideshow.
@@ -441,15 +441,6 @@ Makes sure the entire line is hidden."
   (save-excursion
     (goto-char initial)
     (line-end-position)))
-
-;; Add JCL to hs-special-modes-alist
-(add-to-list 'hs-special-modes-alist
-             `(jcl-mode
-               (jcl-block-start-regexp 1) ; Block start
-               nil ; Block end - using forward-sexp function instead
-               "^//\\*" ; Comment start
-               jcl-hideshow-forward-sexp ; Forward sexp function
-               jcl-hs-adjust-block-beginning)) ; Adjust beginning function
 
 
 
@@ -495,23 +486,21 @@ Makes sure the entire line is hidden."
               outline-regexp jcl-outline-regexp
               outline-heading-end-regexp jcl-outline-end-regexp)
 
-
   ;; Filling
   (setq-local fill-column jcl-fill-column
               comment-auto-fill-only-comments t)
 
-  ;; Set up the menus.
-
-  ;; (easy-menu-define jcl-mainframe-os-menu jcl-mode-map
-  ;;   "JCL commands"
-  ;;   '("JCL OS"
-  ;;     ["Submit" jcl-submit]
-  ;;     ["Submit JCL File" jcl-submit-file])
-  ;;   )
-
-
   (setq-local imenu-generic-expression
 	      (reverse jcl-imenu-generic-expression))
+
+  ;; Add JCL to hs-special-modes-alist
+  (add-to-list 'hs-special-modes-alist
+                `(jcl-mode
+                  ,jcl-block-start-regexp ; Block start
+                  nil ; Block end - using forward-sexp function instead
+                  "^//\\*" ; Comment start
+                  jcl-hideshow-forward-sexp ; Forward sexp function
+                  jcl-hs-adjust-block-beginning)) ; Adjust beginning function
   )
 
 
