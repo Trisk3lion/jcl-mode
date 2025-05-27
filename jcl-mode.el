@@ -66,12 +66,14 @@
   :type '(string))
 
 ;; JCL Keywords
+;; Job card:
+;; (?<![a-zA-Z])(?i:ADDSPC|BYTES|CARDS|DSENQSHR|GROUP|JESLOG|JOBRC|LINES|MEMLIMIT|MSGCLASS|MSGLEVEL|NOTIFY|PAGES|PASSWORD|PERFORM|PRTY|RD|REGION|RESTART|SECLABEL|SCHENV|SYAFF|SYSTEM|TIME|TYPRUN|UJOBCORR|USER|CLASS|UID)(=|$)"
 
 (defconst jcl-statements
   '("JOB" "EXEC" "DD"))
 
 (defconst jcl-operators
-  '("PROC" "PEND" "INCLUDE" "SET" "JCLLIB"))
+  '("PROC" "PEND" "INCLUDE" "SET" "JCLLIB" "XMIT" "OUPUT" "UTPROC" "CNTL" "COMMAND"))
 
 (defconst jcl-operands
   '("CLASS" "MSGCLASS" "MSGLEVEL" "USER" "PASSWORD" "REGION" "JOBRC" "NOTIFY" "TIME"
@@ -357,15 +359,16 @@ arg DO-SPACE prevents stripping the whitespace."
 (defun jcl--check-bol ()
   (save-excursion
     (beginning-of-line)
-    (looking-at "^...?")
-    (pcase  (match-string 0)
-      ("//*" 'comment)
-      ((rx bol "//" (? anychar))
-       (progn (end-of-line)
-              (skip-syntax-backward "\s-")
-              (if (eq (char-before) ?,)
-                  'parameter 'standard)))
-      (_ 'other))))
+    (if (bolp) 'other
+      (looking-at "^...?")
+      (pcase  (match-string 0)
+        ("//*" 'comment)
+        ((rx bol "//" (? anychar))
+         (progn (end-of-line)
+                (skip-syntax-backward "\s-")
+                (if (eq (char-before) ?,)
+                    'parameter 'standard)))
+        (_ 'other)))))
 
 (defun jcl-electric-enter ()
   (interactive)
