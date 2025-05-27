@@ -1,0 +1,17 @@
+image: alpine/edge
+secrets:
+  - 15af1398-9022-42e5-8edb-af21ed634d3c
+sources:
+  - git@git.sr.ht/~hjelmtech/jcl-mode
+environment:
+  GIT_SSH_COMMAND: ssh -o StrictHostKeyChecking=no
+tasks:
+  - setup: |
+      # This is for not having to cd into your <repo> for each task
+      echo 'cd jcl-mode' >> ~/.buildenv
+  - check: |
+      if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then \
+        complete-build; \
+      fi
+  - mirror: |
+      git push --force --mirror git@github.com:Trisk3lion/jcl-mode.git
