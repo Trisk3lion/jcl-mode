@@ -1,6 +1,6 @@
 ;;; jcl-mode.el --- Major mode for editing JCL - Job Control Language - files  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022-2024  Kristofer Hjelmtorp
+;; Copyright (C) 2022-2025  Kristofer Hjelmtorp
 
 ;; Author: Kristofer Hjelmtorp <kristofer@hjelmtorp.se>
 ;; Maintainer: Kristofer Hjelmtorp <kristofer@hjelmtorp.se>
@@ -129,7 +129,6 @@
 (defconst jcl-hl-control-statement
   (rx bol "//" (not "*") (0+ nonl) symbol-start (group (or "IF" "ENDIF" "ELSE")) symbol-end))
 
-
 (defconst jcl-procedure-statement
   (rx bol "XX"))
 
@@ -230,44 +229,37 @@ These are the names of jobs and steps.")
 (defcustom jcl-string-face 'font-lock-string-face
   "The face used to fontify strings (single-quoted) in JCL mode."
   :group 'jcl
-  :type 'symbol
-  )
+  :type 'symbol)
 
 (defcustom jcl-names-face 'font-lock-function-name-face
   "The face used to fontify names in JCL mode."
   :group 'jcl
-  :type 'symbol
-  )
+  :type 'symbol)
 
 (defcustom jcl-statement-face 'font-lock-keyword-face
   "The face used to fontify operations in JCL mode."
   :group 'jcl
-  :type 'symbol
-  )
+  :type 'symbol)
 
 (defcustom jcl-operations-face 'font-lock-keyword-face
   "The face used to fontify operations in JCL mode."
   :group 'jcl
-  :type 'symbol
-  )
+  :type 'symbol)
 
 (defcustom jcl-operands-face 'font-lock-type-face
   "The face used to fontify operands in JCL mode."
   :group 'jcl
-  :type 'symbol
-  )
+  :type 'symbol)
 
 (defcustom jcl-operators-face 'font-lock-builtin-face
   "The face used to fontify operators in JCL mode."
   :group 'jcl
-  :type 'symbol
-  )
+  :type 'symbol)
 
 (defcustom jcl-comment-face 'font-lock-comment-face
   "The face used to fontify comments in JCL mode."
   :group 'jcl
-  :type 'symbol
-  )
+  :type 'symbol)
 
 (defcustom jcl-expanded-face 'font-lock-warning-face
   "The face used to fontify expanded INCLUDEs in `jcl-mode."
@@ -291,10 +283,9 @@ These are the names of jobs and steps.")
 
 (defvar jcl-font-lock-defaults
   (list 'jcl-font-lock-keywords
-	nil ; Do syntax based processing.
-	)
-  "The JCL mode font-lock defaults specification."
-  )
+	 nil ; Do syntax based processing.
+	 )
+  "The JCL mode font-lock defaults specification.")
 
 ;;; Commands
 
@@ -315,7 +306,6 @@ arg DO-SPACE prevents stripping the whitespace."
 
 (defun jcl-locate-proc-mem (name)
   (locate-file name jcl-proc-member-library jcl-proc-member-suffix))
-
 
 ;;; jcl-mode-syntax-table
 
