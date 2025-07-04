@@ -349,7 +349,7 @@ arg DO-SPACE prevents stripping the whitespace."
 (defun jcl--check-bol ()
   (save-excursion
     (beginning-of-line)
-    (if (bolp) 'other
+    (if (eolp) 'other
       (looking-at "^...?")
       (pcase  (match-string 0)
         ("//*" 'comment)
