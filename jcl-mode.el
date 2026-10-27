@@ -367,7 +367,7 @@ arg DO-SPACE prevents stripping the whitespace."
       ('comment (jcl--electric-comment))
       ('parameter (jcl--electric-enter-indent))
       ('standard (jcl--electric-enter))
-      ('other (newline)))))
+      ('other (call-interactively 'newline)))))
 
 (defconst jcl-block-start-regexp
   (concat (rx bol "//" jcl-name-rx (1+ "\s"))
