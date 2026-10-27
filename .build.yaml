@@ -1,6 +1,6 @@
 image: alpine/edge
 secrets:
-  - 15af1398-9022-42e5-8edb-af21ed634d3c
+  - 892ae2b4-c4f3-4d1a-b24c-3c650c16dcf3
 sources:
   - git@git.sr.ht/~hjelmtech/jcl-mode
 environment:
